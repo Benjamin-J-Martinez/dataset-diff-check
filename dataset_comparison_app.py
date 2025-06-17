@@ -26,6 +26,8 @@ import pandas as pd
 import io
 from typing import Dict, List, Tuple, Set
 import base64
+import os
+import sys
 
 # Set page config
 st.set_page_config(
@@ -91,7 +93,13 @@ def get_matching_columns(left_cols: Set[str], right_cols: Set[str]) -> Tuple[Set
     right_only = right_cols - left_cols
     return matching, left_only, right_only
 
-def get_base64_image(image_path):
+def get_base64_image(image_filename):
+    # Get the absolute path to the image, works for PyInstaller
+    if hasattr(sys, '_MEIPASS'):
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        image_path = os.path.join(sys._MEIPASS, image_filename)
+    else:
+        image_path = os.path.join(os.path.dirname(__file__), image_filename)
     with open(image_path, "rb") as img_file:
         return base64.b64encode(img_file.read()).decode()
 
@@ -192,6 +200,7 @@ def main():
                         expanded=False
                     ):
                         for col in sorted(matching_cols):
+                            st.divider()
                             if col in st.session_state.removed_auto_columns:
                                 col1, col2, col3 = st.columns([2, 2, 1])
                                 with col1:
@@ -206,12 +215,12 @@ def main():
                                         st.rerun()
                                 continue
                             else:
-                                st.divider()  # Add divider before each mapping
                                 col1, col2, col3 = st.columns([2, 2, 1])
                                 with col1:
                                     st.write(f"Left column: {col}")
                                 with col2:
-                                    # Allow overriding automatic mapping
+                                    st.write(f"Right column: {col}")
+                                    # Move the checkbox and selectbox below the column text
                                     override = st.checkbox(
                                         "Override mapping",
                                         key=f"override_{col}"
@@ -223,8 +232,6 @@ def main():
                                             key=f"mapping_auto_{col}"
                                         )
                                         st.session_state.column_mapping[col] = right_col
-                                    else:
-                                        st.write(f"Right column: {col}")
                                 with col3:
                                     if st.button("Remove", key=f"remove_auto_{col}"):
                                         st.session_state.column_mapping.pop(col, None)
@@ -444,4 +451,4 @@ def main():
                             st.error(f"Error during filtering: {str(e)}")
 
 if __name__ == "__main__":
-    main() 
+    main()
